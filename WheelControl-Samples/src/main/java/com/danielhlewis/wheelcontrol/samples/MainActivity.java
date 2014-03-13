@@ -1,5 +1,8 @@
 package com.danielhlewis.wheelcontrol.samples;
 
+import android.content.Context;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -23,8 +26,6 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        setTitle("Wheel Control Samples");
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -62,6 +63,8 @@ public class MainActivity extends ActionBarActivity {
         int selectedSlice = -1;
         WheelControl wheel;
         int centerClicks = 0;
+        int spHandles[] = new int[12];
+        SoundPool sp;
 
         public PlaceholderFragment() {
         }
@@ -74,13 +77,28 @@ public class MainActivity extends ActionBarActivity {
             //values = calculateData(values);
             //MyGraphView graphView = new MyGraphView(this.getActivity(), values);
             //lv1.addView(graphView);
-            //String labels[] = {"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"};
+            String labels[] = {"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"};
             //String labels[] = {"12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"};
-            //wheel = new WheelControl(this.getActivity(), labels);
-            wheel = new WheelControl(this.getActivity(), 4);
+            wheel = new WheelControl(this.getActivity(), labels);
+            //wheel = new WheelControl(this.getActivity(), 4);
             wheel.setOnSliceClickListener(wheelSliceClickListener);
             wheel.setOnCenterClickListener(wheelCenterClickListener);
             layout.addView(wheel);
+
+            sp = new SoundPool(12, AudioManager.STREAM_MUSIC, 0);
+            spHandles[0] = sp.load(this.getActivity(), R.raw._48, 1);
+            spHandles[1] = sp.load(this.getActivity(), R.raw._49, 1);
+            spHandles[2] = sp.load(this.getActivity(), R.raw._50, 1);
+            spHandles[3] = sp.load(this.getActivity(), R.raw._51, 1);
+            spHandles[4] = sp.load(this.getActivity(), R.raw._52, 1);
+            spHandles[5] = sp.load(this.getActivity(), R.raw._53, 1);
+            spHandles[6] = sp.load(this.getActivity(), R.raw._54, 1);
+            spHandles[7] = sp.load(this.getActivity(), R.raw._55, 1);
+            spHandles[8] = sp.load(this.getActivity(), R.raw._56, 1);
+            spHandles[9] = sp.load(this.getActivity(), R.raw._57, 1);
+            spHandles[10] = sp.load(this.getActivity(), R.raw._58, 1);
+            spHandles[11] = sp.load(this.getActivity(), R.raw._59, 1);
+
             return rootView;
         }
 
@@ -90,6 +108,7 @@ public class MainActivity extends ActionBarActivity {
                 if (sliceNumber != selectedSlice) {
                     if (sliceNumber != -1) {
                         wheel.setSliceState(sliceNumber, WheelControl.SliceState.SELECTED);
+                        sp.play(spHandles[sliceNumber], 1, 1, 1, 0, 1);
                     }
                     if (selectedSlice != -1) {
                         wheel.setSliceState(selectedSlice, WheelControl.SliceState.UNSELECTED);
