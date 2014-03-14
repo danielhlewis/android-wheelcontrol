@@ -51,18 +51,22 @@ public class WheelControl extends View {
     int defaultSelectedSliceColor = Color.parseColor("#FF7400");
     int defaultPositiveColor = Color.parseColor("#70E500");
     int defaultNegativeColor = Color.parseColor("#E1004C");
-    int centerTextColor = Color.parseColor("#000000");
 
     String centerText = "";
+    int centerTextColor = Color.parseColor("#000000");
+
+    boolean drawCenterCircle = true;
+    int centerColor = Color.parseColor("#E1004C");
 
     //Size Params
     int padding = 20;
+    int centerButtonPadding = 5;
     int labelPadding;
     int origin;
     int diameter, radius;
     float innerDiameterRelativeSize = (float) .5;
     int innerDiameter, innerRadius;
-    RectF wheelBox, innerWheelBox;
+    RectF wheelBox, innerWheelBox, innermostWheelBox;
     int labelPaddingRatio = 8;
     int textSizeRatio = 12;
     int textHeight;
@@ -233,6 +237,26 @@ public class WheelControl extends View {
         invalidate();
     }
 
+    public int getCenterTextColor() {
+        return centerTextColor;
+    }
+
+    public boolean isDrawCenterCircle() {
+        return drawCenterCircle;
+    }
+
+    public void setDrawCenterCircle(boolean drawCenterCircle) {
+        this.drawCenterCircle = drawCenterCircle;
+    }
+
+    public int getCenterColor() {
+        return centerColor;
+    }
+
+    public void setCenterColor(int centerColor) {
+        this.centerColor = centerColor;
+    }
+
     public SliceState getSliceState(int sliceNumber) {
         if (sliceNumber >= 0 && sliceNumber < slices.size()) {
             return slices.get(sliceNumber).state;
@@ -294,6 +318,10 @@ public class WheelControl extends View {
                 padding + (radius - innerRadius),
                 padding + (radius + innerRadius),
                 padding + (radius + innerRadius));
+        innermostWheelBox = new RectF(innerWheelBox.left + centerButtonPadding,
+                innerWheelBox.top + centerButtonPadding,
+                innerWheelBox.right - centerButtonPadding,
+                innerWheelBox.bottom - centerButtonPadding);
         labelPadding = diameter / labelPaddingRatio;
         //Set our text size relative to the size of our circle
         // (Maybe not the best way to do it, but it works)
@@ -349,6 +377,11 @@ public class WheelControl extends View {
         }
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         canvas.drawOval(innerWheelBox, paint);
+        if (drawCenterCircle) {
+            paint.setColor(centerColor);
+            paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+            canvas.drawOval(innermostWheelBox, paint);
+        }
         paint.setXfermode(null);
     }
 

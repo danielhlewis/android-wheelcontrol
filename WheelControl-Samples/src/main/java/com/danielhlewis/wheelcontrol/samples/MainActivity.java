@@ -37,7 +37,7 @@ public class MainActivity extends ActionBarActivity {
     static boolean requireClicks = true;
     static boolean defaultColors = true;
     static boolean showLabels = true;
-    static boolean showCenterText = false;
+    static boolean showCenterText = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
