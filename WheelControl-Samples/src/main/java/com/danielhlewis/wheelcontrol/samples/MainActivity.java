@@ -37,6 +37,7 @@ public class MainActivity extends ActionBarActivity {
     static boolean requireClicks = true;
     static boolean defaultColors = true;
     static boolean showLabels = true;
+    static boolean showCenterText = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +72,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         wheel.setShowLabels(showLabels);
-        wheel.setCenterText((showLabels) ? ("Hide Labels") : ("Show Labels"));
+        if (showCenterText) wheel.setCenterText((showLabels) ? ("Hide Labels") : ("Show Labels"));
         wheel.setNumberOfSlices(sliceCount);
         for (int i = 0; i < sliceCount; i++) {
             wheel.setSliceColorOverrides(i, colorOverrides[i * 4], colorOverrides[i * 4 + 1],
@@ -144,7 +145,7 @@ public class MainActivity extends ActionBarActivity {
         public void onCenterClick() {
             showLabels = !showLabels;
             wheel.setShowLabels(showLabels);
-            wheel.setCenterText((showLabels) ? ("Hide Labels") : ("Show Labels"));
+            if (showCenterText) wheel.setCenterText((showLabels) ? ("Hide Labels") : ("Show Labels"));
         }
     };
 

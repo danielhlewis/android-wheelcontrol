@@ -219,6 +219,7 @@ public class WheelControl extends View {
 
     public void setShowLabels(boolean showLabels) {
         this.showLabels = showLabels;
+        invalidate();
     }
 
     public void setShowCenterText(boolean showCenterText) {
