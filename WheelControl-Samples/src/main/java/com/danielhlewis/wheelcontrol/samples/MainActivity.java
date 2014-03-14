@@ -68,9 +68,6 @@ public class MainActivity extends ActionBarActivity {
             for (int i = 0; i < sliceCount; i++) {
                 sliceStates[i] = "UNSELECTED";
             }
-//            getSupportFragmentManager().beginTransaction()
-//                    .add(R.id.container, new WheelFragment())
-//                    .commit();
         }
 
         wheel.setShowLabels(showLabels);
@@ -168,9 +165,6 @@ public class MainActivity extends ActionBarActivity {
         }
     };
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
     public static class WheelFragment extends Fragment {
 
         @Override
