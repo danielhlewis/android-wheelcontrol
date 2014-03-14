@@ -8,6 +8,8 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -49,7 +51,7 @@ public class WheelControl extends View {
     int defaultSelectedSliceColor = Color.parseColor("#FF7400");
     int defaultPositiveColor = Color.parseColor("#70E500");
     int defaultNegativeColor = Color.parseColor("#E1004C");
-    int defaultCenterTextColor = Color.parseColor("#000000");
+    int centerTextColor = Color.parseColor("#000000");
 
     String centerText = "";
 
@@ -66,6 +68,7 @@ public class WheelControl extends View {
     int textHeight;
     int centerTextWidth;
     Rect textBounds = new Rect();
+    boolean showLabels = true, showCenterText = true;
 
     //Touch interaction
     boolean centerClickInitiated = false;
@@ -88,13 +91,48 @@ public class WheelControl extends View {
         double arcLength, angleStart, angleCenter, angleEnd;
         int labelX, labelY;
         SliceState state = SliceState.UNSELECTED;
+    }
 
+    public void clearSliceColorOverrides(int sliceNum) {
+        setSliceColorOverrides(sliceNum, -1, -1, -1, -1);
+    }
 
-        public void clearColorOverrides() {
-            overrideUnselectedColor = -1;
-            overrideSelectedColor = -1;
-            overridePositiveColor = -1;
-            overrideNegativeColor = -1;
+    public void setSliceColorOverrides(int sliceNum, int overrideUnselectedColor, int overrideSelectedColor,
+                                       int overridePositiveColor, int overrideNegativeColor) {
+        if (sliceNum >= 0 && sliceNum < slices.size()) {
+            WheelSlice slice = slices.get(sliceNum);
+            slice.overrideUnselectedColor = overrideUnselectedColor;
+            slice.overrideSelectedColor = overrideSelectedColor;
+            slice.overridePositiveColor = overridePositiveColor;
+            slice.overrideNegativeColor = overrideNegativeColor;
+        }
+        invalidate();
+    }
+
+    public int[] getColorOverrides(int sliceNum) {
+        int overrides[] = null;
+        if (sliceNum >= 0 && sliceNum < slices.size()) {
+            overrides = new int[4];
+            WheelSlice slice = slices.get(sliceNum);
+            overrides[0] = slice.overrideUnselectedColor;
+            overrides[1] = slice.overrideSelectedColor;
+            overrides[2] = slice.overridePositiveColor;
+            overrides[3] = slice.overrideNegativeColor;
+        }
+        return overrides;
+    }
+
+    public void setNumberOfSlices(int n) {
+        int sliceCount = slices.size();
+        if (n > sliceCount) {
+            //Add slices
+            for (int i = 0; i < n - sliceCount; i++) {
+                addSlice();
+            }
+        } else if (n < sliceCount) {
+            for (int i = 0; i < sliceCount - n; i++) {
+                removeSlice(slices.size() - 1);
+            }
         }
     }
 
@@ -114,23 +152,11 @@ public class WheelControl extends View {
         this.centerClickListeners.add(listener);
     }
 
-    public void setSliceState(int sliceNumber, SliceState s) {
-        if (sliceNumber >= 0 && sliceNumber < slices.size()) {
-            slices.get(sliceNumber).state = s;
-        }
-        invalidate();
-    }
-
-    public void setCenterText(String centerText) {
-        this.centerText = centerText;
-        recalculateCenterTextWidth();
-        invalidate();
-    }
-
     private View.OnTouchListener wheelTouch = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN)
+            int action = motionEvent.getAction();
+            if (action == MotionEvent.ACTION_DOWN)
                 touchDownTime = System.nanoTime();
             int touchX = (int)motionEvent.getX();
             int touchY = (int)motionEvent.getY();
@@ -146,10 +172,10 @@ public class WheelControl extends View {
                 if (sliceTouching != sliceTouched) {
                     sliceTouching = -1;
                 }
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                if (action == MotionEvent.ACTION_DOWN) {
                     //We are initating a slice touch
                     sliceTouching = sliceTouched;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                } else if (action == MotionEvent.ACTION_UP) {
                     if (sliceTouching == sliceTouched) {
                         if (System.nanoTime() - touchDownTime <= clickThreshold) {
                             //Slice click completed, notify listeners
@@ -164,7 +190,7 @@ public class WheelControl extends View {
             }
             //Fire the slice touched callback
             for (WheelSliceTouchListener listener : sliceTouchListeners)
-                listener.onSliceTouch(sliceTouched);
+                listener.onSliceTouch(sliceTouched, action);
 
             if (!inInnerCircle) {
                 //If we've left the center, cancel any pending center clicks
@@ -172,10 +198,10 @@ public class WheelControl extends View {
             } else {
                 // Center click logic - A center click will be reported if a down and up are
                 //   recorded with no leaving the center inbetween
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                if (action == MotionEvent.ACTION_DOWN) {
                     //Center click initiated
                     centerClickInitiated = true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_UP && centerClickInitiated) {
+                } else if (action == MotionEvent.ACTION_UP && centerClickInitiated) {
                     if (System.nanoTime() - touchDownTime <= clickThreshold) {
                         //Fire center clicked callback
                         for (WheelCenterClickListener listener : centerClickListeners)
@@ -186,6 +212,43 @@ public class WheelControl extends View {
             return true;
         }
     };
+
+    public void setCenterTextColor(int centerTextColor) {
+        this.centerTextColor = centerTextColor;
+    }
+
+    public void setShowLabels(boolean showLabels) {
+        this.showLabels = showLabels;
+    }
+
+    public void setShowCenterText(boolean showCenterText) {
+        this.showCenterText = showCenterText;
+    }
+
+    public void setSliceState(int sliceNumber, SliceState s) {
+        if (sliceNumber >= 0 && sliceNumber < slices.size()) {
+            slices.get(sliceNumber).state = s;
+        }
+        invalidate();
+    }
+
+    public SliceState getSliceState(int sliceNumber) {
+        if (sliceNumber >= 0 && sliceNumber < slices.size()) {
+            return slices.get(sliceNumber).state;
+        } else {
+            return null;
+        }
+    }
+
+    public void setCenterText(String centerText) {
+        this.centerText = centerText;
+        recalculateCenterTextWidth();
+        invalidate();
+    }
+
+    public int getNumberOfSlices() {
+        return slices.size();
+    }
 
     public void addSlice() {
         addSlice("");
@@ -205,6 +268,12 @@ public class WheelControl extends View {
         s.overrideSelectedColor = overrideSelectedColor;
         s.overrideUnselectedColor = overrideUnselectedColor;
         slices.add(s);
+        recalculateSliceArcLengths();
+        invalidate();
+    }
+
+    public void removeSlice(int location) {
+        slices.remove(slices.size() - 1);
         recalculateSliceArcLengths();
         invalidate();
     }
@@ -229,13 +298,9 @@ public class WheelControl extends View {
         // (Maybe not the best way to do it, but it works)
         paint.setTextSize(diameter / textSizeRatio);
         recalculateAllLabelWidths();
-        paint.getTextBounds("a", 0, 1, textBounds);
-        int textHeight = textBounds.height();
+        paint.getTextBounds("A", 0, 1, textBounds);
+        textHeight = textBounds.height();
         //Set Text Labels
-        for (WheelSlice slice : slices) {
-            slice.labelX = (int) (wheelBox.centerX() + (Math.sin(Math.toRadians(-(slice.angleCenter + initialRotation))) * (radius - labelPadding)) - (slice.labelWidth / 2));
-            slice.labelY = (int) (wheelBox.centerY() + (Math.cos(Math.toRadians(slice.angleCenter + initialRotation)) * (radius - labelPadding)) + (textHeight / 2));
-        }
         recalculateCenterTextWidth();
     }
 
@@ -249,13 +314,14 @@ public class WheelControl extends View {
         }
 
         drawSlices(canvas);
-        drawLabels(canvas);
-        drawCenterText(canvas);
+        if (showLabels) drawLabels(canvas);
+        if (showCenterText) drawCenterText(canvas);
     }
 
     private void drawSlices(Canvas canvas) {
         double currentAngle = initialRotation - (slices.get(0).arcLength / 2);
         int sliceCount = slices.size();
+        int paddingDegrees = (sliceCount == 1) ? (0) : (1);
         for (int i = 0; i < sliceCount; i++) {
             WheelSlice slice = slices.get(i);
             int sliceColor;
@@ -275,7 +341,9 @@ public class WheelControl extends View {
                     break;
             }
             paint.setColor(sliceColor);
-            canvas.drawArc(wheelBox, (float) currentAngle + 1, (float) slice.arcLength - 1, true, paint);
+
+            canvas.drawArc(wheelBox, (float) currentAngle + paddingDegrees, (float) slice.arcLength - paddingDegrees, true, paint);
+
             currentAngle += slice.arcLength;
         }
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
@@ -295,7 +363,7 @@ public class WheelControl extends View {
 
     private void drawCenterText(Canvas canvas) {
         paint.setXfermode(null);
-        paint.setColor(defaultCenterTextColor);
+        paint.setColor(centerTextColor);
         canvas.drawText(centerText, origin - (centerTextWidth / 2), origin + (textHeight / 2), paint);
     }
 
@@ -314,8 +382,13 @@ public class WheelControl extends View {
     }
 
     private void recalculateLabelWidth(int sliceNumber) {
-        paint.getTextBounds(slices.get(sliceNumber).label, 0, slices.get(sliceNumber).label.length(), textBounds);
-        slices.get(sliceNumber).labelWidth = textBounds.width();
+        WheelSlice slice = slices.get(sliceNumber);
+        paint.getTextBounds(slice.label, 0, slice.label.length(), textBounds);
+        slice.labelWidth = textBounds.width();
+        if (wheelBox != null) {
+            slice.labelX = (int) (wheelBox.centerX() + (Math.sin(Math.toRadians(-(slice.angleCenter + initialRotation))) * (radius - labelPadding)) - (slice.labelWidth / 2));
+            slice.labelY = (int) (wheelBox.centerY() + (Math.cos(Math.toRadians(slice.angleCenter + initialRotation)) * (radius - labelPadding)) + (textHeight / 2));
+        }
     }
 
     private void recalculateAllLabelWidths() {
