@@ -1,6 +1,7 @@
 package com.danielhlewis.wheelcontrol;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -14,6 +15,9 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
+import java.util.Random;
+
+import static android.graphics.Bitmap.createBitmap;
 
 /**
  * Created by dlewis on 3/12/14.
@@ -21,7 +25,7 @@ import java.util.ArrayList;
 public class WheelControl extends View {
 
     public WheelControl(Context context) {
-        super(context);
+        this(context, 0);
     }
 
     public WheelControl(Context context, int numberOfSlices) {
@@ -37,8 +41,9 @@ public class WheelControl extends View {
                 addSlice("");
             }
         }
-        //Porter-Duff seems glitchy in hardware (at least on the HTC One)
-        this.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+
+        bitmap = createBitmap(50, 50, Bitmap.Config.ARGB_8888);
+        bitmapCanvas = new Canvas(bitmap);
 
         this.setOnTouchListener(wheelTouch);
     }
@@ -55,8 +60,11 @@ public class WheelControl extends View {
     String centerText = "";
     int centerTextColor = Color.parseColor("#000000");
 
-    boolean drawCenterCircle = true;
+    boolean drawCenterCircle = false;
     int centerColor = Color.parseColor("#E1004C");
+
+    Canvas bitmapCanvas;
+    Bitmap bitmap;
 
     //Size Params
     int padding = 20;
@@ -308,6 +316,8 @@ public class WheelControl extends View {
         super.onSizeChanged(w, h, oldW, oldH);
         //Recalculate all of our components' sizes
         diameter = (w < h) ? (w) : (h);
+        bitmap = createBitmap(diameter, diameter, Bitmap.Config.ARGB_8888);
+        bitmapCanvas = new Canvas(bitmap);
         diameter -= padding * 2;
         radius = diameter / 2;
         origin = padding + radius;
@@ -336,15 +346,16 @@ public class WheelControl extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         //Bail if we don't have any slices to draw
         if (slices.size() == 0) {
             return;
         }
 
-        drawSlices(canvas);
-        if (showLabels) drawLabels(canvas);
-        if (showCenterText) drawCenterText(canvas);
+
+        drawSlices(bitmapCanvas);
+        if (showLabels) drawLabels(bitmapCanvas);
+        if (showCenterText) drawCenterText(bitmapCanvas);
+        canvas.drawBitmap(bitmap, 0, 0, paint);
     }
 
     private void drawSlices(Canvas canvas) {
@@ -447,5 +458,16 @@ public class WheelControl extends View {
     private void recalculateCenterTextWidth() {
         paint.getTextBounds(centerText, 0, centerText.length(), textBounds);
         centerTextWidth = textBounds.width();
+    }
+
+    public int selectRandomSlice() {
+        Random random = new Random();
+        int sliceCount = slices.size();
+        for (int i = 0; i < sliceCount; i++) {
+            setSliceState(i, SliceState.UNSELECTED);
+        }
+        int selectedSlice = random.nextInt(getNumberOfSlices());
+        setSliceState(selectedSlice, SliceState.SELECTED);
+        return selectedSlice;
     }
 }
